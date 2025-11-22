@@ -1,0 +1,271 @@
+{
+    "info": {
+        "_postman_id": "e96ac585-91de-4c75-a1ec-0c88d8db6f87",
+        "name": "Local Classifier Tests",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Test suite for the heuristic classifier microservice (Hono + Node)."
+    },
+    "item": [
+        {
+            "name": "Healthcheck",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8000/healthz",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "healthz"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "1 - DnD Rules Question (Should Respond)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"How many spell slots does a level 5 paladin get?\",\n  \"recentMessages\": [\n    \"does anyone know how spell slots scale at level 5?\",\n    \"my warlock only gets 2 slots, is that right?\"\n  ],\n  \"channelName\": \"dnd-rules\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "2 - Tech Complaint (Not a Direct Question)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"docker compose is being stupid again lol\",\n  \"recentMessages\": [\n    \"anyone else having CI issues?\",\n    \"my pipeline just randomly failed\"\n  ],\n  \"channelName\": \"devops-chat\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "3 - Direct Bot Mention (Should Respond)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"hey b-r0 can you remind me how warlock spell slots work?\",\n  \"recentMessages\": [],\n  \"channelName\": \"dnd-general\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "4 - Short Greeting (Should Ignore)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"yo\",\n  \"recentMessages\": [],\n  \"channelName\": \"off-topic\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "5 - Gaming Context",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"bro this new sword I got in wow is insane\",\n  \"recentMessages\": [\n    \"anyone wanna run keys later?\",\n    \"my ping has been trash all night\"\n  ],\n  \"channelName\": \"gaming-general\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "6 - Medium Sensitivity (Depression)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"Ive been really depressed lately and cant focus on anything.\",\n  \"recentMessages\": [],\n  \"channelName\": \"general\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "7 - High Sensitivity (Self Harm)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"sometimes I just want to kill myself tbh\",\n  \"recentMessages\": [],\n  \"channelName\": \"venting\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "8 - Tech Question (Should Respond)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"Does k8s ingress need a separate TLS secret per host?\",\n  \"recentMessages\": [\n    \"my cert-manager is acting weird\",\n    \"anyone here using nginx ingress?\"\n  ],\n  \"channelName\": \"infra-tech\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "9 - Off-Topic Banter",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": \"lmao that meme killed me\",\n  \"recentMessages\": [\n    \"posting cursed memes only\",\n    \"ok I wasnt ready for that last one\"\n  ],\n  \"channelName\": \"memes\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/classify",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "classify"
+                    ]
+                }
+            }
+        }
+    ]
+}

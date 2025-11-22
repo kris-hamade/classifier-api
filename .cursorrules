@@ -1,0 +1,149 @@
+# Project Context
+
+This repository includes a Discord bot and a local classifier whose job is to decide whether the bot should respond to a given message and how to categorize it.
+
+The classifier is a **small, ultra-fast HTTP microservice** built in **TypeScript + Node**, using **Hono** as the web framework.  
+The classifier uses **deterministic heuristics** (not an LLM or ML model) to produce:
+
+{
+  "shouldRespond": boolean,
+  "confidence": number (0–1),
+  "isQuestion": boolean,
+  "topic": "dnd" | "tech" | "gaming" | "other",
+  "sensitivity": "low" | "medium" | "high",
+  "reason": string
+}
+
+This service runs locally and the Discord bot calls it on every incoming message before deciding whether to call an LLM.
+
+# Tech Stack Rules
+
+- The classifier MUST be implemented in **TypeScript** using **Hono** (not Express, not Fastify).
+- MUST run on Node 18+ or Node 20+.
+- MUST NOT use Python, FastAPI, Django, Flask, or any other non-JS server.
+- MUST NOT use heavy ML libraries (transformers, torch, ONNX, etc.).
+- MUST be **pure heuristics**: string matching, regex, keyword scoring.
+
+# Architecture & File Layout
+
+Use this structure (Cursor should create missing files automatically):
+
+- `src/classifier/server.ts`       → Hono HTTP server (routes + startup)
+- `src/classifier/routes.ts`       → Defines `/classify` and `/healthz`
+- `src/classifier/heuristics.ts`   → All classification logic in pure functions
+- `src/classifier/types.ts`        → Shared TypeScript interfaces
+- `src/classifier/config.ts`       → Keyword lists + thresholds
+- `src/index.ts` or `src/main.ts`  → Entry point that boots the classifier
+
+For Dockerization:
+
+- `docker/classifier.Dockerfile`   → Node 20-alpine with Hono
+- `docker-compose.yml`             → Add a `classifier` service on port 8000
+
+# HTTP API Contract
+
+The classifier exposes two endpoints:
+
+### POST `/classify`
+
+Request (JSON):
+{
+  "message": "string (required)",
+  "recentMessages": ["string"],   // optional
+  "channelName": "string"         // optional
+}
+
+Response (JSON):
+{
+  "shouldRespond": true,
+  "confidence": 0.87,
+  "isQuestion": true,
+  "topic": "dnd",
+  "sensitivity": "low",
+  "reason": "User is asking a D&D rules question in a DND channel."
+}
+
+### GET `/healthz`
+Response:
+{
+  "status": "ok"
+}
+
+Cursor should never change this contract without explicit instruction.
+
+# Classifier Logic Rules
+
+The classifier MUST be deterministic and use no network or ML calls.
+
+1. **normalize(text)**
+   - lowercase + trim
+
+2. **isQuestion rules**
+   - ends with '?'
+   - starts with question word (who/what/when/where/why/how/etc.)
+   - contains '?' anywhere
+
+3. **topic classification**
+   - One of: "dnd", "tech", "gaming", "other"
+   - Use channel hints first
+   - Then keyword matching
+
+4. **sensitivity**
+   - "high" for self-harm / suicidal content
+   - "medium" for mental-health / highly emotional content
+   - otherwise "low"
+
+5. **shouldRespond**
+   True when:
+   - direct bot mention (`b-r0`, `bot`, `@bot`)
+   - sensitivity = high
+   - message is a clear question
+   - recent messages contain questions (ongoing Q&A)
+
+   False when:
+   - short greetings with no question
+   - casual chat with no intent to ask anything
+
+Always compute:
+- shouldRespond
+- confidence (0–1)
+- reason (short explanation string)
+
+6. **Performance**
+   - MUST be extremely fast (just string operations)
+   - No I/O or network inside classification
+   - No calls to Ollama or any LLM
+
+# Integration Rules (Discord Bot)
+
+- The bot must call `/classify` for each incoming user message.
+- `shouldRespond` + `confidence` determines whether the bot talks.
+- `topic` and `sensitivity` influence persona + prompt for downstream LLM.
+
+Cursor should create a small client helper:
+- `src/services/classifierClient.ts`
+- Function: `classifyMessage(payload): Promise<ClassifyResponse>`
+
+# Code Style
+
+- Use strict TypeScript (`strict: true`).
+- Prefer small pure functions.
+- Keyword lists + thresholds belong in `config.ts`.
+- Tests must be generated in `src/classifier/__tests__/`.
+
+# Testing Requirements
+
+Cursor should assist in adding unit tests for:
+- isQuestion()
+- topic detection
+- sensitivity detection
+- shouldRespond()
+- overall /classify endpoint
+
+# What NOT to Do
+
+- DO NOT use Express, Fastify, Koa, or NestJS for this service.
+- DO NOT convert this service to Python.
+- DO NOT bring in ML libraries.
+- DO NOT generate LLM-based reasoning inside the classifier.
+- DO NOT alter the `/classify` response shape unless explicitly instructed.
