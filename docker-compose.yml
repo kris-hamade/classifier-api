@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  classifier:
+    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/classifier-api}:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+

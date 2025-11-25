@@ -58,6 +58,44 @@ npm run dev
 
 The server will start on port 8000 (or the port specified in the `PORT` environment variable).
 
+## Docker Deployment
+
+### Building the Docker Image
+
+```bash
+docker build -t classifier-api:latest .
+```
+
+### Running with Docker
+
+```bash
+docker run -p 8000:8000 -e PORT=8000 classifier-api:latest
+```
+
+### Using Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+The service will be available at `http://localhost:8000`.
+
+### GitHub Container Registry
+
+The Docker image is automatically built and published to GitHub Container Registry (GHCR) on pushes to the `main` branch.
+
+**Pull the image:**
+```bash
+docker pull ghcr.io/YOUR_USERNAME/classifier-api:latest
+```
+
+**Run the image:**
+```bash
+docker run -p 8000:8000 ghcr.io/YOUR_USERNAME/classifier-api:latest
+```
+
+Replace `YOUR_USERNAME` with your GitHub username or organization name.
+
 ## API Endpoints
 
 ### POST `/classify`
