@@ -14,12 +14,33 @@ export function normalize(text: string): string {
 
 export function isQuestion(text: string): boolean {
   const t = text.trim();
-  if (t.endsWith("?")) return true;
-  const lower = t.toLowerCase();
-  for (const w of QUESTION_WORDS) {
-    if (lower.startsWith(w + " ")) return true;
+  // Must end with question mark (strong signal)
+  if (t.endsWith("?")) {
+    // But exclude very short casual messages like "lol?" or "really?"
+    if (t.length < 15 && !t.includes(" ")) {
+      return false;
+    }
+    return true;
   }
-  return lower.includes("?");
+  
+  const lower = t.toLowerCase();
+  // Must start with question word followed by space (clear question structure)
+  for (const w of QUESTION_WORDS) {
+    if (lower.startsWith(w + " ")) {
+      return true;
+    }
+  }
+  
+  // Question phrases must be at the start
+  const questionPhrases = ["tell me", "explain", "describe", "define", "show me", "help me", "i need", "i want to know", "i wonder"];
+  for (const phrase of questionPhrases) {
+    if (lower.startsWith(phrase)) {
+      return true;
+    }
+  }
+  
+  // Don't match "?" anywhere - too loose, catches casual usage
+  return false;
 }
 
 export function detectTopic(text: string, channelName?: string): Topic {
@@ -78,35 +99,94 @@ export function decideShouldRespond(
     };
   }
 
-  if (!isQ && text.length < 10 && ["hi", "hey", "hello", "yo", "sup"].includes(text)) {
+  // Filter out casual messages and short greetings
+  if (!isQ) {
+    // Short greetings - definitely ignore
+    if (text.length < 10 && ["hi", "hey", "hello", "yo", "sup", "hii", "heyy"].includes(text)) {
+      return {
+        shouldRespond: false,
+        confidence: 0.7,
+        reason: "Short greeting; ignoring to reduce noise.",
+      };
+    }
+    
+    // Very short casual messages
+    if (text.length < 20 && ["ok", "okay", "cool", "nice", "lol", "haha", "yeah", "yep", "nope", "thanks", "ty"].includes(text)) {
+      return {
+        shouldRespond: false,
+        confidence: 0.75,
+        reason: "Short casual message; ignoring to reduce noise.",
+      };
+    }
+    
+    // If not a question and no clear topic, don't respond
+    if (topic === "other") {
+      return {
+        shouldRespond: false,
+        confidence: 0.8,
+        reason: "Not a question and no clear topic match; ignoring.",
+      };
+    }
+  }
+
+  // Only respond to questions if they meet stricter criteria
+  if (isQ) {
+    // Strong signal: Question in a specific topic
+    if (["dnd", "tech", "gaming"].includes(topic)) {
+      // Require minimum length to avoid responding to "what?" or "how?"
+      if (text.length >= 15) {
+        return {
+          shouldRespond: true,
+          confidence: 0.9,
+          reason: `User asked a ${topic.toUpperCase()} question.`,
+        };
+      } else {
+        // Very short questions need topic match AND channel hint
+        return {
+          shouldRespond: false,
+          confidence: 0.6,
+          reason: "Question too short; requires more context.",
+        };
+      }
+    }
+    
+    // General questions - only respond if they're substantial
+    if (text.length >= 25) {
+      return {
+        shouldRespond: true,
+        confidence: 0.8,
+        reason: "User asked a substantial general question.",
+      };
+    } else {
+      // Short general questions - don't respond
+      return {
+        shouldRespond: false,
+        confidence: 0.65,
+        reason: "General question too short; requires more specificity.",
+      };
+    }
+  }
+
+  // Ongoing conversation - require stronger signals
+  const recentJoined = recent.join(" ").toLowerCase();
+  const recentHasQuestions = recentJoined.includes("?");
+  
+  // Only respond to ongoing conversation if:
+  // 1. Recent messages have questions AND
+  // 2. Current message is relevant (has topic match or is substantial)
+  if (recentHasQuestions) {
+    if (["dnd", "tech", "gaming"].includes(topic) && text.length >= 15) {
+      return {
+        shouldRespond: true,
+        confidence: 0.8,
+        reason: "Ongoing conversation with topic match; responding.",
+      };
+    }
+    // Don't respond to ongoing conversation if message is too short or no topic
     return {
       shouldRespond: false,
       confidence: 0.7,
-      reason: "Short greeting; ignoring to reduce noise.",
-    };
-  }
-
-  if (isQ) {
-    if (["dnd", "tech", "gaming"].includes(topic)) {
-      return {
-        shouldRespond: true,
-        confidence: 0.9,
-        reason: `User asked a ${topic.toUpperCase()} question.`,
-      };
-    }
-    return {
-      shouldRespond: true,
-      confidence: 0.85,
-      reason: "User asked a general question.",
-    };
-  }
-
-  const recentJoined = recent.join(" ").toLowerCase();
-  if (recentJoined.includes("?")) {
-    return {
-      shouldRespond: true,
-      confidence: 0.75,
-      reason: "Ongoing conversation that includes questions; responding.",
+      reason: "Ongoing conversation detected but message lacks clear intent.",
     };
   }
 
